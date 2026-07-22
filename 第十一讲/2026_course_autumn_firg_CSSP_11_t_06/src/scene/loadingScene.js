@@ -67,6 +67,7 @@ export default class loadingScene extends Phaser.Scene {
         this.load.image('item_bg', 'assets/png/gameScene/item_bg.png');
         this.load.image('area_cell', 'assets/png/gameScene/area_cell.png');
         this.load.image('cell', 'assets/png/gameScene/cell.png');
+        this.load.image('cell_border', 'assets/png/gameScene/cell_border.png');
         this.load.image('cell_big', 'assets/png/gameScene/cell_big.png');
         this.load.image('cell_border_big', 'assets/png/gameScene/cell_border_big.png');
         this.load.image('fireman', 'assets/png/gameScene/fireman.png');
