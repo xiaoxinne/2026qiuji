@@ -91,7 +91,6 @@ export default class loadingScene extends Phaser.Scene {
         this.load.image('area', 'assets/png/gameScene/area.png');
         this.load.image('jiaobiao', 'assets/png/common/jiaobiao.png');
 
-        this.load.image('option_bg', 'assets/png/gameScene/option_bg.png');
         this.load.image('submit', 'assets/png/common/submit.png');
         this.load.image('submit_s', 'assets/png/common/submit_s.png');
         this.load.image('submit_d', 'assets/png/common/submit_d.png');

@@ -9,9 +9,9 @@ const ERROR_FLASH_TIMES = 3;
 const ERROR_FLASH_INTERVAL = 150;
 
 const OPTIONS = [
-    { id: '1', x: 1203, y: 797, texture: 'option1', selectedTexture: 'option1_s', errorTexture: 'option1_r' },
-    { id: '2', x: 1412, y: 797, texture: 'option2', selectedTexture: 'option2_s', errorTexture: 'option2_r' },
-    { id: '3', x: 1622, y: 797, texture: 'option3', selectedTexture: 'option3_s', errorTexture: 'option3_r' },
+    { id: '1', x: 604, y: 750, texture: 'option1', selectedTexture: 'option1_s', errorTexture: 'option1_r' },
+    { id: '2', x: 950, y: 750, texture: 'option2', selectedTexture: 'option2_s', errorTexture: 'option2_r' },
+    { id: '3', x: 1295, y: 750, texture: 'option3', selectedTexture: 'option3_s', errorTexture: 'option3_r' },
 ];
 
 export default class gameScene extends Phaser.Scene {
@@ -37,7 +37,6 @@ export default class gameScene extends Phaser.Scene {
         this.add.image(960, 540, 'game_bg');
         this.add.image(960, 92, 'title1');
         this.add.image(961, 376, 'area');
-        this.add.image(1404, 797, 'option_bg');
 
         this.trumpet = TrumpetButtonComponent.create(this, {
             x: 155,
