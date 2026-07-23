@@ -15,20 +15,65 @@ const ITEM_BG_POSITIONS = [
     [293, 799], [567, 799], [840, 799],
 ];
 
-/** 完整 3×3：全部格用 cell */
-const FULL_3X3_CELLS = [
-    [0, 0], [1, 0], [2, 0],
-    [0, 1], [1, 1], [2, 1],
-    [0, 2], [1, 2], [2, 2],
+/** 1: 左上→右上→中中→右下；火人在右上 */
+const SHAPE_1 = {
+    cells: [[0, 0], [1, 0], [1, 1], [2, 2]],
+    firemanIndex: 1,
+};
+
+/** 2: X 形；火人在右下 */
+const SHAPE_2 = {
+    cells: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
+    firemanIndex: 4,
+};
+
+/** 3: 十字；火人在右中 */
+const SHAPE_3 = {
+    cells: [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]],
+    firemanIndex: 3,
+};
+
+/** 4: 中横 + 右上右下；火人在正中 */
+const SHAPE_4 = {
+    cells: [[2, 0], [0, 1], [1, 1], [2, 1], [2, 2]],
+    firemanIndex: 2,
+};
+
+/** 5: T 形；火人在左上 */
+const SHAPE_5 = {
+    cells: [[0, 0], [1, 0], [2, 0], [1, 1], [1, 2]],
+    firemanIndex: 0,
+};
+
+/** 6: 左上→左中→中中→右下；火人在左中 */
+const SHAPE_6 = {
+    cells: [[0, 0], [0, 1], [1, 1], [2, 2]],
+    firemanIndex: 1,
+};
+
+/** 7: 倒 L（右竖 + 底横）；火人在下中 */
+const SHAPE_7 = {
+    cells: [[2, 0], [2, 1], [0, 2], [1, 2], [2, 2]],
+    firemanIndex: 3,
+};
+
+/** 8: 反对角线；火人在左下 */
+const SHAPE_8 = {
+    cells: [[2, 0], [1, 1], [0, 2]],
+    firemanIndex: 2,
+};
+
+/** 9: 横折（上三 + 右中右下）；火人在右上 */
+const SHAPE_9 = {
+    cells: [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2]],
+    firemanIndex: 2,
+};
+
+const SHAPE_CONFIGS = [
+    SHAPE_1, SHAPE_2, SHAPE_3,
+    SHAPE_4, SHAPE_5, SHAPE_6,
+    SHAPE_7, SHAPE_8, SHAPE_9,
 ];
-
-/** fireman 格子：第 1 个在第 8 格（index 7），其余按序 */
-const FIREMAN_INDEXES = [7, 3, 5, 2, 8, 0, 1, 4, 6];
-
-const SHAPE_CONFIGS = FIREMAN_INDEXES.map((firemanIndex) => ({
-    cells: FULL_3X3_CELLS,
-    firemanIndex,
-}));
 
 export default class gameScene extends Phaser.Scene {
     constructor() {
