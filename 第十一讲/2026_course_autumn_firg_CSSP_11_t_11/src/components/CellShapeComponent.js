@@ -184,6 +184,9 @@ export default class CellShapeComponent {
       )
       : dragVisualLayout;
 
+    // 拖拽/匹配/放置使用同一套相对布局，避免吸附瞬间格子相对容器偏移造成跳动
+    const placeLayout = matchZones.length ? matchLayout : dragVisualLayout;
+
     const container = scene.add.container(x, y).setDepth(depth);
     const cellSprites = cells.map((_cell, index) => {
       const pos = normalLayout.positions[index];
@@ -272,7 +275,7 @@ export default class CellShapeComponent {
     const setDragEnabled = (enabled) => {
       dragEnabled = enabled;
       if (enabled) {
-        updateInteractive(matched ? matchLayout : normalLayout);
+        updateInteractive(matched ? placeLayout : normalLayout);
       } else {
         container.disableInteractive();
       }
@@ -296,7 +299,7 @@ export default class CellShapeComponent {
         x: homeX,
         y: homeY,
         duration: snapDuration,
-        ease: 'Back.easeOut',
+        ease: 'Cubic.easeOut',
         onComplete: () => {
           applyLayout(normalLayout, 'normal');
           setDragEnabled(true);
@@ -317,7 +320,7 @@ export default class CellShapeComponent {
         hideGhost();
       }
       container.setDepth(depth + 1000);
-      applyLayout(dragVisualLayout, 'dragging');
+      applyLayout(placeLayout, 'dragging');
       container.setAlpha(dragAlpha);
       if (onDragStart) onDragStart(container);
     });
@@ -333,11 +336,12 @@ export default class CellShapeComponent {
       container.setAlpha(1);
 
       const snap = CellShapeComponent._findMatch(
-        container, matchLayout, cells, matchZones, matchThreshold,
+        container, placeLayout, cells, matchZones, matchThreshold,
       );
 
       if (snap) {
         matched = true;
+        applyLayout(placeLayout, 'matched');
         // 保持在上层并递增，避免先降回 base depth 导致已放置图形（尤其半透明边框）闪一下
         container.setDepth(CellShapeComponent._matchedDepthSeq++);
         scene.tweens.add({
@@ -345,9 +349,8 @@ export default class CellShapeComponent {
           x: snap.x,
           y: snap.y,
           duration: snapDuration,
-          ease: 'Back.easeOut',
+          ease: 'Cubic.easeOut',
           onComplete: () => {
-            applyLayout(matchLayout, 'matched');
             setDragEnabled(true);
             showGhost();
             if (onMatch) onMatch(container, snap);
@@ -365,7 +368,7 @@ export default class CellShapeComponent {
         x: homeX,
         y: homeY,
         duration: snapDuration,
-        ease: 'Back.easeOut',
+        ease: 'Cubic.easeOut',
         onComplete: () => {
           applyLayout(normalLayout, 'normal');
           if (onReturn) onReturn(container);

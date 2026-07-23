@@ -166,8 +166,8 @@ export default class CellShapeComponent {
     const minCol = Math.min(...cols);
     const minRow = Math.min(...rows);
 
-    // 素材右边框在 width-2：gap=-1 → 相邻实心边相接，中间线正好 2px
-    const borderOverlap = 1;
+    // cell/cell_border=64；big=90。gap=-2 → 中心距 88，双边框重叠成一条线
+    const borderOverlap = 2;
     const normalLayout = CellShapeComponent._buildLayout(
       cells, minCol, minRow, cellWidth, cellHeight, -borderOverlap, -borderOverlap,
     );
@@ -179,6 +179,9 @@ export default class CellShapeComponent {
         cells, minCol, minRow, matchZones, dragCellWidth, dragCellHeight,
       )
       : dragVisualLayout;
+
+    // 拖拽/匹配/放置使用同一套相对布局，避免吸附瞬间格子相对容器偏移造成跳动
+    const placeLayout = matchZones.length ? matchLayout : dragVisualLayout;
 
     const container = scene.add.container(x, y).setDepth(depth);
     const cellSprites = cells.map((_cell, index) => {
@@ -264,7 +267,7 @@ export default class CellShapeComponent {
     const setDragEnabled = (enabled) => {
       dragEnabled = enabled;
       if (enabled) {
-        updateInteractive(matched ? matchLayout : normalLayout);
+        updateInteractive(matched ? placeLayout : normalLayout);
       } else {
         container.disableInteractive();
       }
@@ -288,7 +291,7 @@ export default class CellShapeComponent {
         x: homeX,
         y: homeY,
         duration: snapDuration,
-        ease: 'Back.easeOut',
+        ease: 'Cubic.easeOut',
         onComplete: () => {
           applyLayout(normalLayout, 'normal');
           setDragEnabled(true);
@@ -309,7 +312,7 @@ export default class CellShapeComponent {
         hideGhost();
       }
       container.setDepth(depth + 1000);
-      applyLayout(dragVisualLayout, 'dragging');
+      applyLayout(placeLayout, 'dragging');
       container.setAlpha(dragAlpha);
       if (onDragStart) onDragStart(container);
     });
@@ -326,19 +329,19 @@ export default class CellShapeComponent {
       container.setDepth(depth);
 
       const snap = CellShapeComponent._findMatch(
-        container, matchLayout, cells, matchZones, matchThreshold,
+        container, placeLayout, cells, matchZones, matchThreshold,
       );
 
       if (snap) {
         matched = true;
+        applyLayout(placeLayout, 'matched');
         scene.tweens.add({
           targets: container,
           x: snap.x,
           y: snap.y,
           duration: snapDuration,
-          ease: 'Back.easeOut',
+          ease: 'Cubic.easeOut',
           onComplete: () => {
-            applyLayout(matchLayout, 'matched');
             setDragEnabled(true);
             showGhost();
             if (onMatch) onMatch(container, snap);
@@ -355,7 +358,7 @@ export default class CellShapeComponent {
         x: homeX,
         y: homeY,
         duration: snapDuration,
-        ease: 'Back.easeOut',
+        ease: 'Cubic.easeOut',
         onComplete: () => {
           applyLayout(normalLayout, 'normal');
           if (onReturn) onReturn(container);

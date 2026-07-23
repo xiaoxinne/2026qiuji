@@ -283,7 +283,7 @@ export default class CellShapeComponent {
         x: homeX,
         y: homeY,
         duration: snapDuration,
-        ease: 'Back.easeOut',
+        ease: 'Cubic.easeOut',
         onComplete: () => {
           applyLayout(normalLayout, 'normal');
           setDragEnabled(true);
@@ -331,7 +331,7 @@ export default class CellShapeComponent {
           x: snap.x,
           y: snap.y,
           duration: snapDuration,
-          ease: 'Back.easeOut',
+          ease: 'Cubic.easeOut',
           onComplete: () => {
             applyLayout(dragLayout, 'matched');
             setDragEnabled(true);
@@ -350,7 +350,7 @@ export default class CellShapeComponent {
         x: homeX,
         y: homeY,
         duration: snapDuration,
-        ease: 'Back.easeOut',
+        ease: 'Cubic.easeOut',
         onComplete: () => {
           applyLayout(normalLayout, 'normal');
           if (onReturn) onReturn(container);

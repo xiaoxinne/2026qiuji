@@ -2,10 +2,11 @@ import DragDropComponent from '../components/DragDropComponent.js';
 import CellShapeComponent from '../components/CellShapeComponent.js';
 import ButtonComponent from '../components/ButtonComponent.js';
 
+// area_cell / cell_big / cell_border_big = 90×90；步长 88（gap=-2），邻边完全重叠成单线
 const MATCH_ZONE_POSITIONS = [
-    [1314.84, 419.86], [1403.84, 419.86], [1492.84, 419.86],
-    [1314.84, 508.86], [1403.84, 508.86], [1492.84, 508.86],
-    [1314.84, 597.86], [1403.84, 597.86], [1492.84, 597.86],
+    [1315.84, 420.86], [1403.84, 420.86], [1491.84, 420.86],
+    [1315.84, 508.86], [1403.84, 508.86], [1491.84, 508.86],
+    [1315.84, 596.86], [1403.84, 596.86], [1491.84, 596.86],
 ];
 
 const ITEM_BG_POSITIONS = [
