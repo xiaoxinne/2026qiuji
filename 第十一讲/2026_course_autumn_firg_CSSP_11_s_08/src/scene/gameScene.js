@@ -35,6 +35,7 @@ export default class gameScene extends Phaser.Scene {
         this.errorCnt = 0;
 
         this.add.image(960, 540, 'game_bg');
+        this.add.image(101, 67, 'jiaobiao');
         this.add.image(960, 92, 'title1');
         this.add.image(1404, 797, 'option_bg');
 
