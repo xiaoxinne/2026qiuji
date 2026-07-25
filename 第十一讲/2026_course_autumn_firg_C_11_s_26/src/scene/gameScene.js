@@ -72,7 +72,7 @@ export default class gameScene extends Phaser.Scene {
         };
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
-        ReportHelper.gameReportParams.difficulty = 0;
+        ReportHelper.gameReportParams.difficulty = 1;
         ReportHelper.report('game_start', {});
 
         this.add.image(960, 540, 'game_bg');

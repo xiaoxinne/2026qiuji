@@ -17,9 +17,9 @@ const OPTIONS = [
 export default class gameScene extends Phaser.Scene {
     constructor() {
         super('gameScene');
-        ReportHelper.gameReportParams.difficulty = 0;
+        ReportHelper.gameReportParams.difficulty = 4;
         ReportHelper.report('game_start', {
-            difficulty: 0,
+            difficulty: 4,
         });
     }
 
