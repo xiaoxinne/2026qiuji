@@ -1,35 +1,33 @@
-import DragDropComponent from '../components/DragDropComponent.js';
 import CellShapeComponent from '../components/CellShapeComponent.js';
 import ButtonComponent from '../components/ButtonComponent.js';
 import GameEndComponent from '../components/GameEndComponent.js';
+import TrumpetButtonComponent from '../components/TrumpetButtonComponent.js';
 
-// area_cell / cell_big / cell_border_big = 90×90；步长 88（gap=-2），邻边完全重叠成单线
+// area_cell / cell = 121×121；步长 117（gap=-4），邻边完全重叠成单线
+// option_bg 左上角 (1170, 327)，367×367 → 中心 (1353.5, 510.5)
 const MATCH_ZONE_POSITIONS = [
-    [1315.84, 420.86], [1403.84, 420.86], [1491.84, 420.86],
-    [1315.84, 508.86], [1403.84, 508.86], [1491.84, 508.86],
-    [1315.84, 596.86], [1403.84, 596.86], [1491.84, 596.86],
+    [1236.5, 393.5], [1353.5, 393.5], [1470.5, 393.5],
+    [1236.5, 510.5], [1353.5, 510.5], [1470.5, 510.5],
+    [1236.5, 627.5], [1353.5, 627.5], [1470.5, 627.5],
 ];
 
-const ITEM_BG_POSITIONS = [
-    [359, 284], [642, 284], [925, 284],
-    [359, 548], [642, 548], [925, 548],
-    [359, 811], [642, 811], [925, 811],
-];
+/** 十字形：上中、中左、中中、中右、下中；火人在顶格 */
+const CROSS_SHAPE = {
+    cells: [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]],
+    firemanIndex: 0,
+};
 
-/** 完整 3×3：火人格用 cell，其余格用 cell_border */
-const FULL_3X3_CELLS = [
-    [0, 0], [1, 0], [2, 0],
-    [0, 1], [1, 1], [2, 1],
-    [0, 2], [1, 2], [2, 2],
-];
+/** 单格：cell + 火人整体可拖拽 */
+const PIECE_SHAPE = {
+    cells: [[0, 0]],
+    firemanIndex: 0,
+};
 
-/** fireman 格子：第 1 个在第 8 格（index 7），其余按序 */
-const FIREMAN_INDEXES = [7, 3, 5, 2, 8, 0, 1, 4, 6];
+const SHAPE_X = 521;
+const SHAPE_Y = 585;
 
-const SHAPE_CONFIGS = FIREMAN_INDEXES.map((firemanIndex) => ({
-    cells: FULL_3X3_CELLS,
-    firemanIndex,
-}));
+const PIECE_X = 1236;
+const PIECE_Y = 839;
 
 export default class gameScene extends Phaser.Scene {
     constructor() {
@@ -42,6 +40,7 @@ export default class gameScene extends Phaser.Scene {
 
         this._onVisibilityChange = () => {
             this.sound.stopAll();
+            this.trumpet?.showIdle?.();
         };
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
@@ -51,42 +50,60 @@ export default class gameScene extends Phaser.Scene {
         this.add.image(960, 540, 'game_bg');
         this.add.image(101, 67, 'jiaobiao');
         this.add.image(960, 92, 'title1');
-        this.add.image(1403.84, 508.86, 'option_bg');
+        this.add.image(1353.5, 510.5, 'option_bg');
         this.areaCells = MATCH_ZONE_POSITIONS.map(([x, y]) => this.add.image(x, y, 'area_cell'));
-        this.itemBgs = ITEM_BG_POSITIONS.map(([x, y]) => this.add.image(x, y, 'item_bg'));
 
-        const itemPositions = [
-            [235, 180], [518, 180], [801, 180],
-            [235, 444], [518, 444], [801, 444],
-            [235, 708], [518, 708], [801, 708],
-        ];
+        this.trumpet = TrumpetButtonComponent.create(this, {
+            x: 155,
+            y: 910,
+            soundKey: 'title1',
+            autoPlay: true,
+        });
 
-        const items = itemPositions.map(([x, y], index) => ({
-            key: `drag_${index + 1}`,
-            texture: `drag_${index + 1}`,
-            x,
-            y,
-        }));
+        const matchZones = MATCH_ZONE_POSITIONS.map(([x, y]) => ({ x, y }));
+        // 提交判定：单格正确位置为第 2 格（顶行中）
+        const CORRECT_ZONE = { x: MATCH_ZONE_POSITIONS[1][0], y: MATCH_ZONE_POSITIONS[1][1] };
 
-        const dropZones = MATCH_ZONE_POSITIONS.map(([x, y], index) => ({
-            key: `match_${index + 1}`,
-            x,
-            y,
-            width: 90,
-            height: 90,
-        }));
+        const sharedVisual = {
+            texture: 'cell',
+            emptyTexture: 'cell',
+            dragTexture: 'cell',
+            matchedTexture: 'cell',
+            firemanTexture: 'fireman',
+            firemanDragTexture: 'fireman',
+            cellWidth: 121,
+            cellHeight: 121,
+            dragCellWidth: 121,
+            dragCellHeight: 121,
+        };
 
-        this.dragDrop = new DragDropComponent(this, {
-            items,
-            dropZones,
-            depth: 100,
-            showGhostOnDrop: true,
-            ghostAlpha: 0.4,
-            onDrop: () => {
-                this.sound.play('put');
-                this._syncSubmitButtonState();
-            },
-            onSwap: () => {
+        // 左侧：cell 组成的十字形（展示用，不参与提交判定）
+        this.shape = CellShapeComponent.create(this, {
+            ...sharedVisual,
+            cells: CROSS_SHAPE.cells,
+            firemanIndex: CROSS_SHAPE.firemanIndex,
+            x: SHAPE_X,
+            y: SHAPE_Y,
+            homeX: SHAPE_X,
+            homeY: SHAPE_Y,
+            depth: 20,
+            matchZones,
+            onMatch: () => this.sound.play('put'),
+            onReturn: () => this.sound.play('put'),
+        });
+
+        // 底部栏：单格可拖拽，任意格可放置
+        this.piece = CellShapeComponent.create(this, {
+            ...sharedVisual,
+            cells: PIECE_SHAPE.cells,
+            firemanIndex: PIECE_SHAPE.firemanIndex,
+            x: PIECE_X,
+            y: PIECE_Y,
+            homeX: PIECE_X,
+            homeY: PIECE_Y,
+            depth: 30,
+            matchZones,
+            onMatch: () => {
                 this.sound.play('put');
                 this._syncSubmitButtonState();
             },
@@ -95,50 +112,11 @@ export default class gameScene extends Phaser.Scene {
                 this._syncSubmitButtonState();
             },
         });
-
-        const matchZones = MATCH_ZONE_POSITIONS.map(([x, y]) => ({ x, y }));
-
-        this.shapes = SHAPE_CONFIGS.map((config, index) => {
-            const [x, y] = ITEM_BG_POSITIONS[index];
-            // 序号最高；cornerLShape（2号）中间层；其余图形底层
-            const depth = index === 1 ? 40 : 20;
-            return CellShapeComponent.create(this, {
-                cells: config.cells,
-                firemanIndex: config.firemanIndex,
-                texture: 'cell',
-                emptyTexture: 'cell_border',
-                dragTexture: 'cell_big',
-                matchedTexture: 'cell_border_big',
-                firemanTexture: 'fireman',
-                firemanDragTexture: 'fireman_big',
-                cellWidth: 64,
-                cellHeight: 64,
-                dragCellWidth: 90,
-                dragCellHeight: 90,
-                x,
-                y,
-                homeX: x,
-                homeY: y,
-                depth,
-                matchZones,
-                onMatch: () => {
-                    this.sound.play('put');
-                    this._syncSubmitButtonState();
-                },
-                onReturn: () => {
-                    this.sound.play('put');
-                    this._syncSubmitButtonState();
-                },
-            });
-        });
-
-        this.lShape = this.shapes[0];
-        this.cornerLShape = this.shapes[1];
-        this.sampleShape = this.shapes[2];
+        this.correctZone = CORRECT_ZONE;
 
         this.submitBtn = new ButtonComponent(this, {
-            x: 1778,
-            y: 878,
+            x: 1471,
+            y: 838,
             texture: 'submit',
             clickEffectTexture: 'submit_s',
             clickDisabledTexture: 'submit_d',
@@ -149,19 +127,22 @@ export default class gameScene extends Phaser.Scene {
         this._syncSubmitButtonState();
     }
 
+    _isPieceOnCorrectZone() {
+        if (!this.piece?.isMatched()) return false;
+        const { x, y } = this.piece.container;
+        return Math.hypot(x - this.correctZone.x, y - this.correctZone.y) < 1;
+    }
+
     _syncSubmitButtonState() {
         if (!this.submitBtn || this.isGameOver) return;
-        const hasShape = this.shapes.some((shape) => shape.isMatched());
-        const hasDrag = this.dragDrop.dropZones.some((zone) => zone.currentItem !== null);
-        this.submitBtn.setEnabled(hasShape || hasDrag);
+        this.submitBtn.setEnabled(this.piece.isMatched());
     }
 
     _onSubmit() {
         if (this.isGameOver) return;
+        if (!this.piece.isMatched()) return;
 
-        const allShapesPlaced = this.shapes.every((shape) => shape.isMatched());
-        const allDragsPlaced = this.dragDrop.isAllZonesFilled();
-        if (!allShapesPlaced || !allDragsPlaced) {
+        if (!this._isPieceOnCorrectZone()) {
             this.sound.play('error1');
             this.errorCnt += 1;
             ReportHelper.recordWrongTime(0);
@@ -182,7 +163,7 @@ export default class gameScene extends Phaser.Scene {
         if (this.isGameOver) return;
         this.isGameOver = true;
         this.submitBtn?.setEnabled?.(false);
-        this.dragDrop?.setEnabled?.(false);
+        this.trumpet?.stop?.();
         GameEndComponent.show(this, {
             starCount: this._getStarCountByError(),
             delay: 800,

@@ -12,7 +12,6 @@ export default class loadingScene extends Phaser.Scene {
 
         this.load.once('complete', () => {
             this.showloading();
-            this.loadStartAssets();
             this.loadGameAssets();
             this.load.start();
         });
@@ -52,7 +51,7 @@ export default class loadingScene extends Phaser.Scene {
 
         this.load.on('complete', () => {
             console.log('所有资源加载完成');
-            this.scene.start('startScene');
+            this.scene.start('gameScene');
         });
     }
 
@@ -61,39 +60,29 @@ export default class loadingScene extends Phaser.Scene {
         this.progressHead?.setPosition(this.barLeftX + cropWidth - 40, this.barCenterY - 20);
     }
 
-    loadStartAssets() {
-        this.load.image('startScneBg', 'assets/png/common/s_fm_bg.png');
-
-        this.load.spineBinary('end_data', 'assets/spine/jieshu.skel');
-        this.load.spineAtlas('end_atlas', 'assets/spine/jieshu.atlas');
-
-        this.load.spineBinary('win_data', 'assets/spine/win.skel');
-        this.load.spineAtlas('win_atlas', 'assets/spine/win.atlas');
-
-        this.load.spineBinary('begin_data', 'assets/spine/begin.skel');
-        this.load.spineAtlas('begin_atlas', 'assets/spine/begin.atlas');
-
-        this.load.spineBinary('button_data', 'assets/spine/button.skel');
-        this.load.spineAtlas('button_atlas', 'assets/spine/button.atlas');
-
-        this.load.spineBinary('laba_data', 'assets/spine/laba.skel');
-        this.load.spineAtlas('laba_atlas', 'assets/spine/laba.atlas');
-
-        this.load.audio('jizhang', 'assets/audio/jizhang.mp3');
-        this.load.audio('givemefive', 'assets/audio/givemefive.mp3');
-    }
-
     loadGameAssets() {
         this.load.image('game_bg', 'assets/png/gameScene/bg.png');
         this.load.image('title1', 'assets/png/gameScene/title1.png');
         this.load.image('option_bg', 'assets/png/gameScene/option_bg.png');
+        this.load.image('item_bg', 'assets/png/gameScene/item_bg.png');
         this.load.image('area_cell', 'assets/png/gameScene/area_cell.png');
         this.load.image('cell', 'assets/png/gameScene/cell.png');
         this.load.image('fireman', 'assets/png/gameScene/fireman.png');
         this.load.image('submit', 'assets/png/common/submit.png');
         this.load.image('submit_s', 'assets/png/common/submit_s.png');
         this.load.image('submit_d', 'assets/png/common/submit_d.png');
+        this.load.image('reset', 'assets/png/common/reset_n.png');
+        this.load.image('reset_s', 'assets/png/common/reset_s.png');
         this.load.image('jiaobiao', 'assets/png/common/jiaobiao.png');
+
+        for (let i = 1; i <= 4; i++) {
+            this.load.image(`option_${i}`, `assets/png/gameScene/option_${i}.png`);
+            this.load.image(`option_${i}_s`, `assets/png/gameScene/option_${i}_s.png`);
+            this.load.image(`option_${i}_r`, `assets/png/gameScene/option_${i}_r.png`);
+        }
+
+        this.load.spineBinary('effect_jinengzidan_data', 'assets/spine/effect_jinengzidan.skel');
+        this.load.spineAtlas('effect_jinengzidan_atlas', 'assets/spine/effect_jinengzidan.atlas');
 
         this.load.audio('btnclick', 'assets/audio/btnclick.mp3');
         this.load.audio('title1', 'assets/audio/title1.mp3');
@@ -102,3 +91,4 @@ export default class loadingScene extends Phaser.Scene {
         this.load.audio('error1', 'assets/audio/error1.mp3');
     }
 }
+

@@ -1,9 +1,8 @@
 /**
  * 用 cell 图块拼出可拖拽图形。
- * cells 为相对格子坐标 [col, row]，例如 [[2, 0], [0, 1], [1, 1], [2, 2]]
- * firemanIndex：哪一个格子上叠加火人（默认 0）
- * matchZones：放置区中心点 [{ x, y }, ...]，用于匹配吸附
- * 匹配成功后可选在原位显示半透明 ghost（showGhostOnMatch）
+ * cells 为相对格子坐标 [col, row]
+ * firemanIndexes：哪些格子上叠加火人（兼容 firemanIndex 单值）
+ * matchZones / getMatchZones：放置区中心点，用于匹配吸附
  */
 export default class CellShapeComponent {
   static _buildLayout(cells, minCol, minRow, cellWidth, cellHeight, gapX, gapY) {
@@ -72,7 +71,7 @@ export default class CellShapeComponent {
     const zoneGrid = matchZones.map((z, index) => ({
       x: z.x,
       y: z.y,
-      index,
+      index: z.index != null ? z.index : index,
       col: xs.indexOf(z.x),
       row: ys.indexOf(z.y),
     }));
@@ -125,6 +124,8 @@ export default class CellShapeComponent {
     return {
       x: container.x + dx,
       y: container.y + dy,
+      zoneIndexes,
+      zoneIndex: zoneIndexes[0],
     };
   }
 
@@ -134,89 +135,105 @@ export default class CellShapeComponent {
       x = 0,
       y = 0,
       texture = 'cell',
-      emptyTexture = 'cell',
       dragTexture = 'cell',
       matchedTexture = 'cell',
       firemanTexture = 'fireman',
       firemanDragTexture = 'fireman',
       firemanIndex = 0,
-      cellWidth = 121,
-      cellHeight = 121,
-      dragCellWidth = 121,
-      dragCellHeight = 121,
-      gapX = 0,
-      gapY = 0,
+      firemanIndexes = null,
+      cellWidth = 99,
+      cellHeight = 99,
+      dragCellWidth = 99,
+      dragCellHeight = 99,
       depth = 30,
       homeX = x,
       homeY = y,
-      dragAlpha = 0.85,
+      dragAlpha = 1,
       ghostAlpha = 0.4,
+      showGhost = true,
+      draggable = true,
       matchZones = [],
-      matchThreshold = 58,
+      getMatchZones = null,
+      matchThreshold = 52,
       snapDuration = 200,
       onDragStart = null,
       onDragEnd = null,
       onMatch = null,
       onReturn = null,
       onRecall = null,
-      showGhostOnMatch = false,
     } = options;
+
+    const firemanSet = new Set(
+      Array.isArray(firemanIndexes)
+        ? firemanIndexes
+        : (firemanIndex >= 0 ? [firemanIndex] : []),
+    );
+    const isFireman = (index) => firemanSet.has(index);
 
     const cols = cells.map(([col]) => col);
     const rows = cells.map(([, row]) => row);
     const minCol = Math.min(...cols);
     const minRow = Math.min(...rows);
 
-    // cell/area_cell=121；gap=-4 → 中心距 117，邻边重叠成一条线
-    const borderOverlap = 4;
+    const resolveMatchZones = () => (
+      typeof getMatchZones === 'function' ? getMatchZones() : matchZones
+    );
+
+    // cell / area_cell = 99（边框约2px）；重叠后中间一条线
     const normalLayout = CellShapeComponent._buildLayout(
-      cells, minCol, minRow, cellWidth, cellHeight, -borderOverlap, -borderOverlap,
+      cells, minCol, minRow, cellWidth, cellHeight, -2, -2,
     );
     const dragVisualLayout = CellShapeComponent._buildLayout(
-      cells, minCol, minRow, dragCellWidth, dragCellHeight, -borderOverlap, -borderOverlap,
+      cells, minCol, minRow, dragCellWidth, dragCellHeight, -2, -2,
     );
-    const matchLayout = matchZones.length
-      ? CellShapeComponent._buildLayoutFromMatchZones(
-        cells, minCol, minRow, matchZones, dragCellWidth, dragCellHeight,
-      )
-      : dragVisualLayout;
 
-    // 拖拽/匹配/放置使用同一套相对布局，避免吸附瞬间格子相对容器偏移造成跳动
-    const placeLayout = matchZones.length ? matchLayout : dragVisualLayout;
+    const buildPlaceLayout = (zones) => (
+      zones.length
+        ? CellShapeComponent._buildLayoutFromMatchZones(
+          cells, minCol, minRow, zones, dragCellWidth, dragCellHeight,
+        )
+        : dragVisualLayout
+    );
+
+    let placeLayout = buildPlaceLayout(resolveMatchZones());
 
     const container = scene.add.container(x, y).setDepth(depth);
     const cellSprites = cells.map((_cell, index) => {
       const pos = normalLayout.positions[index];
-      const tex = index === firemanIndex ? texture : emptyTexture;
-      return scene.add.image(pos.x, pos.y, tex).setOrigin(0.5, 0.5);
+      return scene.add.image(pos.x, pos.y, texture);
     });
     container.add(cellSprites);
 
-    let firemanSprite = null;
-    if (firemanIndex >= 0 && firemanIndex < cells.length) {
-      const pos = normalLayout.positions[firemanIndex];
-      firemanSprite = scene.add.image(pos.x, pos.y, firemanTexture).setOrigin(0.5, 0.5);
-      container.add(firemanSprite);
-    }
+    const firemanSprites = [...firemanSet]
+      .filter((index) => index >= 0 && index < cells.length)
+      .map((index) => {
+        const pos = normalLayout.positions[index];
+        const sprite = scene.add.image(pos.x, pos.y, firemanTexture);
+        sprite.setData('cellIndex', index);
+        return sprite;
+      });
+    container.add(firemanSprites);
 
     const ghostContainer = scene.add.container(homeX, homeY).setDepth(depth - 1);
     const ghostCells = cells.map((_cell, index) => {
       const pos = normalLayout.positions[index];
-      const tex = index === firemanIndex ? texture : emptyTexture;
-      return scene.add.image(pos.x, pos.y, tex).setOrigin(0.5, 0.5);
+      return scene.add.image(pos.x, pos.y, texture);
     });
     ghostContainer.add(ghostCells);
-    let ghostFireman = null;
-    if (firemanIndex >= 0 && firemanIndex < cells.length) {
-      const pos = normalLayout.positions[firemanIndex];
-      ghostFireman = scene.add.image(pos.x, pos.y, firemanTexture).setOrigin(0.5, 0.5);
-      ghostContainer.add(ghostFireman);
-    }
+    const ghostFiremen = [...firemanSet]
+      .filter((index) => index >= 0 && index < cells.length)
+      .map((index) => {
+        const pos = normalLayout.positions[index];
+        return scene.add.image(pos.x, pos.y, firemanTexture);
+      });
+    ghostContainer.add(ghostFiremen);
     ghostContainer.setAlpha(ghostAlpha).setVisible(false);
 
     let activeHitRects = normalLayout.hitRects;
     let matched = false;
-    let dragEnabled = true;
+    let dragEnabled = draggable;
+    let locked = false;
+    let matchedZoneIndex = null;
 
     const hitTest = (_area, localX, localY) => (
       activeHitRects.some((rect) => Phaser.Geom.Rectangle.Contains(rect, localX, localY))
@@ -233,7 +250,7 @@ export default class CellShapeComponent {
     };
 
     const setGhostInteractive = () => {
-      if (!showGhostOnMatch) return;
+      if (!showGhost) return;
       const { width, height, hitRects } = normalLayout;
       const hitArea = new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height);
       ghostContainer.setInteractive(hitArea, (_area, localX, localY) => (
@@ -245,27 +262,35 @@ export default class CellShapeComponent {
     const applyLayout = (layout, mode) => {
       activeHitRects = layout.hitRects;
       cellSprites.forEach((sprite, index) => {
-        let cellTex = index === firemanIndex ? texture : emptyTexture;
-        if (mode === 'dragging' || mode === 'matched') {
-          cellTex = index === firemanIndex ? dragTexture : matchedTexture;
+        let cellTex = texture;
+        if (mode === 'dragging') {
+          cellTex = dragTexture;
+        } else if (mode === 'matched') {
+          cellTex = isFireman(index) ? dragTexture : matchedTexture;
         }
         sprite.setTexture(cellTex);
         sprite.x = layout.positions[index].x;
         sprite.y = layout.positions[index].y;
       });
-      if (firemanSprite) {
-        const pos = layout.positions[firemanIndex];
-        const useBig = mode === 'dragging' || mode === 'matched';
-        firemanSprite.setTexture(useBig ? firemanDragTexture : firemanTexture);
-        firemanSprite.x = pos.x;
-        firemanSprite.y = pos.y;
-      }
+      const useDragTex = mode === 'dragging' || mode === 'matched';
+      firemanSprites.forEach((sprite) => {
+        const index = sprite.getData('cellIndex');
+        const pos = layout.positions[index];
+        sprite.setTexture(useDragTex ? firemanDragTexture : firemanTexture);
+        sprite.x = pos.x;
+        sprite.y = pos.y;
+      });
       if (dragEnabled) {
         updateInteractive(layout);
       }
     };
 
     const setDragEnabled = (enabled) => {
+      if (locked) {
+        dragEnabled = false;
+        container.disableInteractive();
+        return;
+      }
       dragEnabled = enabled;
       if (enabled) {
         updateInteractive(matched ? placeLayout : normalLayout);
@@ -274,8 +299,8 @@ export default class CellShapeComponent {
       }
     };
 
-    const showGhost = () => {
-      if (!showGhostOnMatch) return;
+    const showGhostFn = () => {
+      if (!showGhost) return;
       ghostContainer.setVisible(true);
     };
 
@@ -284,8 +309,9 @@ export default class CellShapeComponent {
     };
 
     const recallToHome = () => {
-      if (!matched) return;
+      if (!matched || locked) return;
       matched = false;
+      matchedZoneIndex = null;
       hideGhost();
       scene.tweens.killTweensOf(container);
       scene.tweens.add({
@@ -305,14 +331,20 @@ export default class CellShapeComponent {
     };
 
     applyLayout(normalLayout, 'normal');
-    scene.input.setDraggable(container);
+    if (draggable) {
+      scene.input.setDraggable(container);
+    } else {
+      container.disableInteractive();
+    }
 
     container.on('dragstart', () => {
-      if (!dragEnabled) return;
+      if (!dragEnabled || locked) return;
       if (matched) {
         matched = false;
+        matchedZoneIndex = null;
         hideGhost();
       }
+      placeLayout = buildPlaceLayout(resolveMatchZones());
       container.setDepth(depth + 1000);
       applyLayout(placeLayout, 'dragging');
       container.setAlpha(dragAlpha);
@@ -320,22 +352,25 @@ export default class CellShapeComponent {
     });
 
     container.on('drag', (_pointer, dragX, dragY) => {
-      if (!dragEnabled) return;
+      if (!dragEnabled || locked) return;
       container.x = dragX;
       container.y = dragY;
     });
 
     container.on('dragend', () => {
-      if (!dragEnabled) return;
+      if (!dragEnabled || locked) return;
       container.setAlpha(1);
       container.setDepth(depth);
 
+      const zones = resolveMatchZones();
+      placeLayout = buildPlaceLayout(zones);
       const snap = CellShapeComponent._findMatch(
-        container, placeLayout, cells, matchZones, matchThreshold,
+        container, placeLayout, cells, zones, matchThreshold,
       );
 
       if (snap) {
         matched = true;
+        matchedZoneIndex = snap.zoneIndex;
         applyLayout(placeLayout, 'matched');
         scene.tweens.add({
           targets: container,
@@ -345,7 +380,7 @@ export default class CellShapeComponent {
           ease: 'Cubic.easeOut',
           onComplete: () => {
             setDragEnabled(true);
-            showGhost();
+            showGhostFn();
             if (onMatch) onMatch(container, snap);
             if (onDragEnd) onDragEnd(container, true);
           },
@@ -354,6 +389,7 @@ export default class CellShapeComponent {
       }
 
       matched = false;
+      matchedZoneIndex = null;
       hideGhost();
       scene.tweens.add({
         targets: container,
@@ -370,7 +406,7 @@ export default class CellShapeComponent {
     });
 
     ghostContainer.on('pointerup', () => {
-      if (!matched) return;
+      if (!matched || !showGhost || locked) return;
       scene.sound.play('btnclick');
       recallToHome();
     });
@@ -380,22 +416,38 @@ export default class CellShapeComponent {
       ghostContainer,
       cells,
       cellSprites,
-      firemanSprite,
-      firemanIndex,
+      firemanSprites,
+      firemanIndexes: [...firemanSet],
       homeX,
       homeY,
       isMatched: () => matched,
+      getMatchedZoneIndex: () => matchedZoneIndex,
       recall: recallToHome,
+      lock: () => {
+        locked = true;
+        matched = true;
+        hideGhost();
+        setDragEnabled(false);
+        container.setAlpha(1);
+        container.setDepth(depth);
+      },
       reset: () => {
+        if (locked) return;
         matched = false;
+        matchedZoneIndex = null;
         hideGhost();
         scene.tweens.killTweensOf(container);
         applyLayout(normalLayout, 'normal');
-        setDragEnabled(true);
+        setDragEnabled(draggable);
         container.setAlpha(1);
         container.setDepth(depth);
         container.x = homeX;
         container.y = homeY;
+      },
+      destroy: () => {
+        scene.tweens.killTweensOf(container);
+        ghostContainer.destroy(true);
+        container.destroy(true);
       },
     };
   }
