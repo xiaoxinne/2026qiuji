@@ -15,57 +15,57 @@ const ITEM_BG_POSITIONS = [
     [358, 787], [602, 787], [846, 787],
 ];
 
-/** 1: . D F / F . . / D . . */
+/** 1: . X F / X X . */
 const SHAPE_1 = {
-    cells: [[1, 0], [2, 0], [0, 1], [0, 2]],
-    firemanIndexes: [1, 2],
-};
-
-/** 2: F . / D . / . D */
-const SHAPE_2 = {
-    cells: [[0, 0], [0, 1], [1, 2]],
-    firemanIndexes: [0],
-};
-
-/** 3: . . F / F D D / . . F */
-const SHAPE_3 = {
-    cells: [[2, 0], [0, 1], [1, 1], [2, 1], [2, 2]],
-    firemanIndexes: [0, 1, 4],
-};
-
-/** 4: F . F / F D F */
-const SHAPE_4 = {
-    cells: [[0, 0], [2, 0], [0, 1], [1, 1], [2, 1]],
-    firemanIndexes: [0, 1, 2, 4],
-};
-
-/** 5: D . . / . D F */
-const SHAPE_5 = {
-    cells: [[0, 0], [1, 1], [2, 1]],
-    firemanIndexes: [2],
-};
-
-/** 6: . D / D . / F . */
-const SHAPE_6 = {
-    cells: [[1, 0], [0, 1], [0, 2]],
-    firemanIndexes: [2],
-};
-
-/** 7: F . F / . D . / . D . */
-const SHAPE_7 = {
-    cells: [[0, 0], [2, 0], [1, 1], [1, 2]],
-    firemanIndexes: [0, 1],
-};
-
-/** 8: . . D / F . D / . D . */
-const SHAPE_8 = {
-    cells: [[2, 0], [0, 1], [2, 1], [1, 2]],
+    cells: [[1, 0], [2, 0], [0, 1], [1, 1]],
     firemanIndexes: [1],
 };
 
-/** 9: D F D / . D . */
+/** 2: F X . / . X X */
+const SHAPE_2 = {
+    cells: [[0, 0], [1, 0], [1, 1], [2, 1]],
+    firemanIndexes: [0],
+};
+
+/** 3: X X / F . / X . */
+const SHAPE_3 = {
+    cells: [[0, 0], [1, 0], [0, 1], [0, 2]],
+    firemanIndexes: [2],
+};
+
+/** 4: F . / X X / X . */
+const SHAPE_4 = {
+    cells: [[0, 0], [0, 1], [1, 1], [0, 2]],
+    firemanIndexes: [0],
+};
+
+/** 5: X X F */
+const SHAPE_5 = {
+    cells: [[0, 0], [1, 0], [2, 0]],
+    firemanIndexes: [2],
+};
+
+/** 6: . F / X . / . X */
+const SHAPE_6 = {
+    cells: [[1, 0], [0, 1], [1, 2]],
+    firemanIndexes: [0],
+};
+
+/** 7: X X / . F */
+const SHAPE_7 = {
+    cells: [[0, 0], [1, 0], [1, 1]],
+    firemanIndexes: [2],
+};
+
+/** 8: X / F */
+const SHAPE_8 = {
+    cells: [[0, 0], [0, 1]],
+    firemanIndexes: [1],
+};
+
+/** 9: . . X / F X X / . . X */
 const SHAPE_9 = {
-    cells: [[0, 0], [1, 0], [2, 0], [1, 1]],
+    cells: [[2, 0], [0, 1], [1, 1], [2, 1], [2, 2]],
     firemanIndexes: [1],
 };
 
