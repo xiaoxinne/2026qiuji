@@ -91,6 +91,16 @@ export default class loadingScene extends Phaser.Scene {
         this.load.image('jiaobiao', 'assets/png/common/jiaobiao.png');
 
         this.load.image('option_bg', 'assets/png/gameScene/option_bg.png');
+        this.load.image('option', 'assets/png/gameScene/option.png');
+        this.load.image('item_bg', 'assets/png/gameScene/item_bg.png');
+        this.load.image('area_cell', 'assets/png/gameScene/area.png');
+        this.load.image('cell', 'assets/png/gameScene/cell.png');
+        this.load.image('cell_border', 'assets/png/gameScene/cell_border.png');
+        this.load.image('fireman', 'assets/png/gameScene/fireman.png');
+        this.load.image('wenhao', 'assets/png/gameScene/wenhao.png');
+        for (let i = 1; i <= 9; i += 1) {
+            this.load.image(`drag_${i}`, `assets/png/gameScene/drag_${i}.png`);
+        }
         this.load.image('submit', 'assets/png/common/submit.png');
         this.load.image('submit_s', 'assets/png/common/submit_s.png');
         this.load.image('submit_d', 'assets/png/common/submit_d.png');
@@ -104,6 +114,7 @@ export default class loadingScene extends Phaser.Scene {
         this.load.audio('btnclick', 'assets/audio/btnclick.mp3');
         this.load.audio('error1', 'assets/audio/error1.mp3');
         this.load.audio('correct', 'assets/audio/correct.mp3');
+        this.load.audio('put', 'assets/audio/put.mp3');
         this.load.audio('title1', 'assets/audio/title1.mp3');
     }
 }

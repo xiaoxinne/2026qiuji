@@ -2,11 +2,51 @@ import OptionGroupComponent from '../components/OptionGroupComponent.js';
 import ButtonComponent from '../components/ButtonComponent.js';
 import GameEndComponent from '../components/GameEndComponent.js';
 import TrumpetButtonComponent from '../components/TrumpetButtonComponent.js';
+import CellShapeComponent from '../components/CellShapeComponent.js';
+import DragDropComponent from '../components/DragDropComponent.js';
 
 const CORRECT_OPTION_ID = '3';
 
 const ERROR_FLASH_TIMES = 3;
 const ERROR_FLASH_INTERVAL = 150;
+
+/** area 64×64；步长 62（gap=-2）；中心对齐 option (1412, 421) */
+const MATCH_ZONE_POSITIONS = [
+    [1350, 359], [1412, 359], [1474, 359],
+    [1350, 421], [1412, 421], [1474, 421],
+    [1350, 483], [1412, 483], [1474, 483],
+];
+
+const ITEM_BG_POSITIONS = [
+    [358, 283], [625, 283], [892, 283],
+    [358, 544], [625, 544], [892, 544],
+    [358, 803], [625, 803], [892, 803],
+];
+
+// 序号位置
+const ITEM_NUM_POSITIONS = [
+    [249, 172], [516, 172], [783, 172],
+    [249, 432], [516, 432], [783, 432],
+    [249, 691], [516, 691], [783, 691],
+];
+
+/** 完整 3×3 */
+const FULL_3X3_CELLS = [
+    [0, 0], [1, 0], [2, 0],
+    [0, 1], [1, 1], [2, 1],
+    [0, 2], [1, 2], [2, 2],
+];
+
+/**
+ * fireman 位置（按 3×3 行优先 0~8）：
+ * 1中 2中右 3左上 4下中 5中左 6右上 7上中 8左下 9无
+ */
+const FIREMAN_INDEXES = [4, 5, 0, 7, 3, 2, 1, 6, -1];
+
+const SHAPE_CONFIGS = FIREMAN_INDEXES.map((firemanIndex) => ({
+    cells: FULL_3X3_CELLS,
+    firemanIndex,
+}));
 
 const OPTIONS = [
     { id: '1', x: 1203, y: 797, texture: 'option1', selectedTexture: 'option1_s', errorTexture: 'option1_r' },
@@ -38,6 +78,66 @@ export default class gameScene extends Phaser.Scene {
         this.add.image(101, 67, 'jiaobiao');
         this.add.image(960, 92, 'title1');
         this.add.image(1404, 797, 'option_bg');
+        this.add.image(1412, 421, 'option');
+        this.areaCells = MATCH_ZONE_POSITIONS.map(([x, y]) => this.add.image(x, y, 'area_cell'));
+        this.itemBgs = ITEM_BG_POSITIONS.map(([x, y]) => this.add.image(x, y, 'item_bg'));
+        this.add.image(885, 800, 'wenhao').setDepth(30);
+
+        const items = ITEM_NUM_POSITIONS.map(([x, y], index) => ({
+            key: `drag_${index + 1}`,
+            texture: `drag_${index + 1}`,
+            x,
+            y,
+        }));
+
+        const dropZones = MATCH_ZONE_POSITIONS.map(([x, y], index) => ({
+            key: `match_${index + 1}`,
+            x,
+            y,
+            width: 64,
+            height: 64,
+        }));
+
+        this.dragDrop = new DragDropComponent(this, {
+            items,
+            dropZones,
+            depth: 100,
+            showGhostOnDrop: true,
+            ghostAlpha: 0.4,
+            onDrop: () => this.sound.play('put'),
+            onSwap: () => this.sound.play('put'),
+            onReturn: () => this.sound.play('put'),
+        });
+
+        const matchZones = MATCH_ZONE_POSITIONS.map(([x, y]) => ({ x, y }));
+
+        this.shapes = SHAPE_CONFIGS.map((config, index) => {
+            const [x, y] = ITEM_BG_POSITIONS[index];
+            const canDrag = index < 8;
+            // 序号最高；cornerLShape（2号）中间层；其余图形底层
+            const depth = index === 1 ? 40 : 20;
+            return CellShapeComponent.create(this, {
+                cells: config.cells,
+                firemanIndex: config.firemanIndex,
+                texture: 'cell',
+                matchedTexture: 'cell_border',
+                firemanTexture: 'fireman',
+                cellWidth: 64,
+                cellHeight: 64,
+                dragCellWidth: 64,
+                dragCellHeight: 64,
+                x,
+                y,
+                homeX: x,
+                homeY: y,
+                depth,
+                showGhost: canDrag,
+                draggable: canDrag,
+                matchZones: canDrag ? matchZones : [],
+                onMatch: canDrag ? () => this.sound.play('put') : null,
+                onReturn: canDrag ? () => this.sound.play('put') : null,
+            });
+        });
 
         this.trumpet = TrumpetButtonComponent.create(this, {
             x: 155,
@@ -67,6 +167,7 @@ export default class gameScene extends Phaser.Scene {
                 this.onSubmit();
             },
         });
+
         this.syncSubmitButtonState();
     }
 
