@@ -90,8 +90,8 @@ export default class loadingScene extends Phaser.Scene {
         this.load.image('jiaobiao', 'assets/png/common/jiaobiao.png');
         this.load.image('reverse', 'assets/png/gameScene/reverse.png');
 
-        for (let i = 1; i <= GAME_CONFIG.pairCount; i += 1) {
-            this.load.image(`option${i}`, `assets/png/gameScene/option${i}.png`);
+        for (const id of GAME_CONFIG.pairTextureIds) {
+            this.load.image(`option${id}`, `assets/png/gameScene/option${id}.png`);
         }
 
         this.load.audio('btnclick', 'assets/audio/btnclick.mp3');

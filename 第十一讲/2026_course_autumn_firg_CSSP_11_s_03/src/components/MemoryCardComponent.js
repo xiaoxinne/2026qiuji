@@ -1,5 +1,5 @@
 /**
- * 翻牌组件：背面 reverse / 正面 option1~8，带 scaleX 翻转动画。
+ * 翻牌组件：背面 reverse / 正面 option2/4/5/8，带 scaleX 翻转动画。
  */
 export default class MemoryCardComponent {
     constructor(scene, config) {

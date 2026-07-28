@@ -3,7 +3,7 @@ import ButtonComponent from '../components/ButtonComponent.js';
 import GameEndComponent from '../components/GameEndComponent.js';
 import TrumpetButtonComponent from '../components/TrumpetButtonComponent.js';
 
-const CORRECT_OPTION_ID = '3';
+const CORRECT_OPTION_ID = '2';
 
 const ERROR_FLASH_TIMES = 3;
 const ERROR_FLASH_INTERVAL = 150;

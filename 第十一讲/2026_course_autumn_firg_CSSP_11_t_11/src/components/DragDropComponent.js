@@ -4,7 +4,7 @@
  * 支持多个拖拽物放置到多个拖拽区域，具备以下核心逻辑：
  * 1. 区域A → 区域B（B有物品）：两个物品交换
  * 2. 原始位置 → 区域A（A有物品）：原有物品回到原始位置，拖拽物放入A
- * 3. 区域A → 外部（无匹配区域）：物品回到拖拽前的区域A；从 home 拖出则回原始位置
+ * 3. 区域A → 外部（无匹配区域）：物品吸附回原始位置（home）
  * 4. 放入空区域：直接吸附到区域中心
  */
 export default class DragDropComponent {
@@ -406,33 +406,13 @@ export default class DragDropComponent {
             return;
         }
 
-        // 无匹配区域：从区内拖出可清除；从区内拖出否则回原区；从 home 拖出回原始位置
+        // 无匹配区域（拖出魔法阵）：清除或吸附回原始位置
         if (!targetZone) {
             if (this.destroyOnExternalDropFromZone && fromZone) {
                 this.removeItem(item.key);
                 return;
             }
-            if (fromZone) {
-                if (this.allowMultipleItemsPerZone && fromZone.slots) {
-                    const slotIndex = this._resolveSlotIndex(fromZone, item._dragStartSlotIndex);
-                    if (slotIndex >= 0) {
-                        this._zoneAssignItem(fromZone, item, slotIndex);
-                        this._animateItemToSlot(item, fromZone, item.slotIndex, false);
-                    } else {
-                        this._animateToHome(item);
-                    }
-                } else if (this.allowMultipleItemsPerZone) {
-                    fromZone.itemsInZone.push(item);
-                    item.currentZone = fromZone;
-                    this._relayoutZoneItems(fromZone);
-                } else {
-                    fromZone.currentItem = item;
-                    item.currentZone = fromZone;
-                    this._animateToZone(item, fromZone);
-                }
-            } else {
-                this._animateToHome(item);
-            }
+            this._animateToHome(item);
             if (this.onReturnCallback) {
                 this.onReturnCallback(item);
             }

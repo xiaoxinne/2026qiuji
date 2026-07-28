@@ -34,8 +34,8 @@ function buildCardPositions(config) {
 
 function buildDeck(config) {
     const pairIds = [];
-    for (let i = 1; i <= config.pairCount; i += 1) {
-        pairIds.push(i, i);
+    for (const id of config.pairTextureIds) {
+        pairIds.push(id, id);
     }
     return shuffleArray(pairIds);
 }

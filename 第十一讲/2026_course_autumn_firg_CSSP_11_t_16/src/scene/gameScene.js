@@ -39,7 +39,7 @@ export default class gameScene extends Phaser.Scene {
         this.errorCnt = 0;
         this.occupiedZones = new Set();
         this.placedPieces = [];
-        this.piece = null;
+        this.homePiece = null;
 
         this._onVisibilityChange = () => {
             this.sound.stopAll();
@@ -110,7 +110,9 @@ export default class gameScene extends Phaser.Scene {
     }
 
     _spawnPiece() {
-        this.piece = CellShapeComponent.create(this, {
+        if (this.isGameOver || this.homePiece) return;
+
+        const piece = CellShapeComponent.create(this, {
             cellWidth: 99,
             cellHeight: 99,
             dragCellWidth: 99,
@@ -126,55 +128,78 @@ export default class gameScene extends Phaser.Scene {
             homeY: PIECE_Y,
             depth: 30,
             getMatchZones: () => this._getAvailableMatchZones(),
+            onDragStart: () => {
+                if (piece._zoneIndex != null) {
+                    this.occupiedZones.delete(piece._zoneIndex);
+                    piece._zoneIndex = null;
+                }
+                this._syncSubmitButtonState();
+            },
             onMatch: () => {
                 this.sound.play('put');
+                const zoneIndex = piece.getMatchedZoneIndex();
+                if (zoneIndex != null) {
+                    piece._zoneIndex = zoneIndex;
+                    this.occupiedZones.add(zoneIndex);
+                }
+
+                if (this.homePiece === piece) {
+                    this.homePiece = null;
+                    this.placedPieces.push(piece);
+                    this._spawnPiece();
+                }
+
                 this._syncSubmitButtonState();
             },
             onReturn: () => {
                 this.sound.play('put');
+                if (this.homePiece === piece) {
+                    this._syncSubmitButtonState();
+                    return;
+                }
+
+                this.placedPieces = this.placedPieces.filter((p) => p !== piece);
+                if (this.homePiece) {
+                    piece.destroy();
+                } else {
+                    this.homePiece = piece;
+                }
                 this._syncSubmitButtonState();
             },
         });
+
+        piece._zoneIndex = null;
+        this.homePiece = piece;
         this._syncSubmitButtonState();
     }
 
     _syncSubmitButtonState() {
         if (!this.submitBtn || this.isGameOver) return;
-        this.submitBtn.setEnabled(!!this.piece?.isMatched());
+        const ready = CORRECT_ZONE_INDEXES.every((index) => this.occupiedZones.has(index));
+        this.submitBtn.setEnabled(ready);
     }
 
     _onSubmit() {
         if (this.isGameOver) return;
-        if (!this.piece?.isMatched()) return;
 
-        const zoneIndex = this.piece.getMatchedZoneIndex();
-        if (zoneIndex == null || this.occupiedZones.has(zoneIndex)) return;
-
-        const isCorrect = CORRECT_ZONE_INDEXES.includes(zoneIndex);
-        if (!isCorrect) {
-            this.sound.play('error1');
-            this.errorCnt += 1;
-            this.piece.recall();
-            this._syncSubmitButtonState();
-            return;
-        }
+        const isCorrect = CORRECT_ZONE_INDEXES.every((index) => this.occupiedZones.has(index));
+        if (!isCorrect) return;
 
         this.sound.play('correct');
-        const [fx, fy] = MATCH_ZONE_POSITIONS[zoneIndex];
-        this._playSpineEffect(fx, fy);
+        this.placedPieces.forEach((piece) => {
+            piece.lock();
+            const zoneIndex = piece._zoneIndex;
+            if (zoneIndex == null || !CORRECT_ZONE_INDEXES.includes(zoneIndex)) return;
+            const [fx, fy] = MATCH_ZONE_POSITIONS[zoneIndex];
+            this._playSpineEffect(fx, fy);
+        });
 
-        this.occupiedZones.add(zoneIndex);
-        this.piece.lock();
-        this.placedPieces.push(this.piece);
-        this.piece = null;
-
-        const allCorrectPlaced = CORRECT_ZONE_INDEXES.every((index) => this.occupiedZones.has(index));
-        if (allCorrectPlaced) {
-            this._onGameComplete();
-            return;
+        if (this.homePiece) {
+            this.homePiece.destroy();
+            this.homePiece = null;
         }
 
-        this._spawnPiece();
+        this._onGameComplete();
     }
 
     _playSpineEffect(x, y, onComplete, dataKey = 'effect_jinengzidan_data', atlasKey = 'effect_jinengzidan_atlas', depth = 1000) {
@@ -197,15 +222,16 @@ export default class gameScene extends Phaser.Scene {
         this.placedPieces = [];
         this.occupiedZones.clear();
 
-        if (this.piece) {
-            this.piece.destroy();
-            this.piece = null;
+        if (this.homePiece) {
+            this.homePiece.destroy();
+            this.homePiece = null;
         }
 
         this.shape?.reset();
         this.isGameOver = false;
         this.errorCnt = 0;
         this._spawnPiece();
+        this._syncSubmitButtonState();
     }
 
     _onGameComplete() {
