@@ -130,6 +130,8 @@ export default class gameScene extends Phaser.Scene {
 
         this.shapes = SHAPE_CONFIGS.map((config, index) => {
             const [x, y] = ITEM_BG_POSITIONS[index];
+            // 序号最高；cornerLShape（2号）中间层；其余图形底层
+            const depth = index === 1 ? 40 : 20;
             return CellShapeComponent.create(this, {
                 cells: config.cells,
                 firemanIndex: config.firemanIndex,
@@ -147,7 +149,7 @@ export default class gameScene extends Phaser.Scene {
                 y,
                 homeX: x,
                 homeY: y,
-                depth: 20,
+                depth,
                 matchZones,
                 onMatch: () => this.sound.play('put'),
                 onReturn: () => this.sound.play('put'),

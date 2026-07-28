@@ -72,7 +72,7 @@ export default class gameScene extends Phaser.Scene {
         this.areaCells = MATCH_ZONE_POSITIONS.map(([x, y]) => this.add.image(x, y, 'area_cell'));
         this.itemBgs = ITEM_BG_POSITIONS.map(([x, y]) => this.add.image(x, y, 'item_bg'));
 
-        // 序号在 item_bg 顶部中心（item_bg 高 195）
+        // 序号在 item_bg 顶部中心（item_bg 高 195）；序号 depth 100 最高
         const itemPositions = ITEM_BG_POSITIONS.map(([x, y]) => [x, y - 195 / 2]);
 
         const items = itemPositions.map(([x, y], index) => ({

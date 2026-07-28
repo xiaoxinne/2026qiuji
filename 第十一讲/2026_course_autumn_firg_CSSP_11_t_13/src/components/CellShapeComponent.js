@@ -6,9 +6,6 @@
  * 匹配成功后左侧原位显示半透明 ghost，点击可召回并重新拖拽
  */
 export default class CellShapeComponent {
-  /** 已放置图形的递增 depth，保证后放置的在上层，避免松手掉层闪烁 */
-  static _matchedDepthSeq = 100;
-
   static _buildLayout(cells, minCol, minRow, cellWidth, cellHeight, gapX, gapY) {
     const cols = cells.map(([col]) => col);
     const rows = cells.map(([, row]) => row);
@@ -335,6 +332,7 @@ export default class CellShapeComponent {
     container.on('dragend', () => {
       if (!dragEnabled) return;
       container.setAlpha(1);
+      container.setDepth(depth);
 
       const snap = CellShapeComponent._findMatch(
         container, placeLayout, cells, matchZones, matchThreshold,
@@ -344,8 +342,6 @@ export default class CellShapeComponent {
         matched = true;
         // 先切到放置布局再吸附，避免拖拽布局与放置布局中心不一致导致松手后整块往下跳
         applyLayout(placeLayout, 'matched');
-        // 保持在上层并递增，避免先降回 base depth 导致已放置图形（尤其半透明边框）闪一下
-        container.setDepth(CellShapeComponent._matchedDepthSeq++);
         scene.tweens.add({
           targets: container,
           x: snap.x,
@@ -364,7 +360,6 @@ export default class CellShapeComponent {
 
       matched = false;
       hideGhost();
-      container.setDepth(depth);
       scene.tweens.add({
         targets: container,
         x: homeX,
