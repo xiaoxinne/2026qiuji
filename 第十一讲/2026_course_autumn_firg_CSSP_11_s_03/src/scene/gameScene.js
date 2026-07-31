@@ -137,6 +137,7 @@ export default class gameScene extends Phaser.Scene {
 
         const [first, second] = this.openCards;
         if (first.pairId === second.pairId) {
+            this.sound.play('correct');
             await Promise.all([
                 first.remove(GAME_CONFIG.removeDuration),
                 second.remove(GAME_CONFIG.removeDuration),
@@ -148,6 +149,7 @@ export default class gameScene extends Phaser.Scene {
                 this._onGameComplete();
             }
         } else {
+            this.sound.play('error1');
             await new Promise((resolve) => {
                 this.time.delayedCall(GAME_CONFIG.mismatchDelay, resolve);
             });

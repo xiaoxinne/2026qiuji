@@ -157,7 +157,7 @@ export default class gameScene extends Phaser.Scene {
         });
     }
 
-    /** 单格放下后立即判正误（无提交按钮） */
+    /** 单格放到任意空格即占位；正确格播特效；九宫格未满则继续生成 */
     _onPiecePlaced() {
         if (this.isGameOver || !this.piece?.isMatched()) return;
 
@@ -165,23 +165,18 @@ export default class gameScene extends Phaser.Scene {
         if (zoneIndex == null || this.occupiedZones.has(zoneIndex)) return;
 
         const isCorrect = CORRECT_ZONE_INDEXES.includes(zoneIndex);
-        if (!isCorrect) {
-            this.sound.play('error1');
-            this.errorCnt += 1;
-            this.piece.recall();
-            return;
+        if (isCorrect) {
+            this.sound.play('correct');
+            const [fx, fy] = MATCH_ZONE_POSITIONS[zoneIndex];
+            this._playSpineEffect(fx, fy);
         }
-
-        this.sound.play('correct');
-        const [fx, fy] = MATCH_ZONE_POSITIONS[zoneIndex];
-        this._playSpineEffect(fx, fy);
 
         this.occupiedZones.add(zoneIndex);
         this.piece.lock();
         this.placedPieces.push(this.piece);
         this.piece = null;
 
-        if (CORRECT_ZONE_INDEXES.every((index) => this.occupiedZones.has(index))) {
+        if (this.occupiedZones.size >= MATCH_ZONE_POSITIONS.length) {
             return;
         }
 

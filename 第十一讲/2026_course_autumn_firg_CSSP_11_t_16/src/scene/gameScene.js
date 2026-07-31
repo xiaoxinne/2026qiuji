@@ -175,15 +175,23 @@ export default class gameScene extends Phaser.Scene {
 
     _syncSubmitButtonState() {
         if (!this.submitBtn || this.isGameOver) return;
-        const ready = CORRECT_ZONE_INDEXES.every((index) => this.occupiedZones.has(index));
-        this.submitBtn.setEnabled(ready);
+        this.submitBtn.setEnabled(this.occupiedZones.size > 0);
     }
 
     _onSubmit() {
-        if (this.isGameOver) return;
+        if (this.isGameOver || this.occupiedZones.size === 0) return;
 
-        const isCorrect = CORRECT_ZONE_INDEXES.every((index) => this.occupiedZones.has(index));
-        if (!isCorrect) return;
+        const isCorrect = this.occupiedZones.size === CORRECT_ZONE_INDEXES.length
+            && CORRECT_ZONE_INDEXES.every((index) => this.occupiedZones.has(index));
+        if (!isCorrect) {
+            this.sound.play('error1');
+            this.errorCnt += 1;
+            this.placedPieces.forEach((piece) => piece.destroy());
+            this.placedPieces = [];
+            this.occupiedZones.clear();
+            this._syncSubmitButtonState();
+            return;
+        }
 
         this.sound.play('correct');
         this.placedPieces.forEach((piece) => {

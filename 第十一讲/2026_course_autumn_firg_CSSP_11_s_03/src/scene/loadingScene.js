@@ -96,5 +96,7 @@ export default class loadingScene extends Phaser.Scene {
 
         this.load.audio('btnclick', 'assets/audio/btnclick.mp3');
         this.load.audio('title1', 'assets/audio/title1.mp3');
+        this.load.audio('correct', 'assets/audio/correct.mp3');
+        this.load.audio('error1', 'assets/audio/error1.mp3');
     }
 }
