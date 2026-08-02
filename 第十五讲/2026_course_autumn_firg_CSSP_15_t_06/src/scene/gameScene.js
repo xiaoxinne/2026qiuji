@@ -12,7 +12,7 @@ const RESET_BUTTON = { x: 1778, y: 878 };
 const QUETION_POS = { x: 960, y: 829 };
 
 /** 立体中心（游戏区） */
-const CUBE_STACK_ORIGIN = { x: 960, y: 480 };
+const CUBE_STACK_ORIGIN = { x: 960, y: 450 };
 
 /**
  * 步进（由 cell.png 134×125 的棱长测得）
@@ -23,6 +23,22 @@ const CUBE_STACK_ORIGIN = { x: 960, y: 480 };
 const STEP_COL = { x: 96, y: 0 };
 const STEP_ROW = { x: 34, y: -24 };
 const STEP_UP = 97;
+
+/** 数字徽章相对顶层 cell 中心的偏移（落在顶面中心偏左上） */
+const NUM_OFFSET = { x: 0, y: -75 };
+
+/**
+ * 列状态：
+ * 1 初始：不显示描边高亮、不显示数字
+ * 2 顶面和描边高亮（cell_s），不显示数字
+ * 3 显示数字 + 状态1外观（常态 cell）
+ * 首次点击 1→2，之后 2↔3 循环
+ */
+const COLUMN_STATE = {
+    IDLE: 1,
+    HIGHLIGHT: 2,
+    NUMBER: 3,
+};
 
 /**
  * cell1.png 的立体图形：8 列共 18 个 cell
@@ -62,6 +78,9 @@ export default class gameScene extends Phaser.Scene {
         this.errorCnt = 0;
         this.levelIndex = 0;
         this.cubeImages = [];
+        this.numImages = [];
+        /** @type {Map<string, number>} 列状态 1/2/3，key = `${col},${row}` */
+        this.columnStates = new Map();
 
         this.add.image(960, 540, 'game_bg');
         this.add.image(101, 67, 'jiaobiao');
@@ -75,6 +94,21 @@ export default class gameScene extends Phaser.Scene {
         this._createResetButton();
 
         this.playLevelTitle();
+    }
+
+    _columnKey(col, row) {
+        return `${col},${row}`;
+    }
+
+    _getColumnState(col, row) {
+        return this.columnStates.get(this._columnKey(col, row)) || COLUMN_STATE.IDLE;
+    }
+
+    /** 下一状态：1→2，之后 2↔3 */
+    _nextColumnState(current) {
+        if (current === COLUMN_STATE.IDLE) return COLUMN_STATE.HIGHLIGHT;
+        if (current === COLUMN_STATE.HIGHLIGHT) return COLUMN_STATE.NUMBER;
+        return COLUMN_STATE.HIGHLIGHT;
     }
 
     get currentLevel() {
@@ -102,6 +136,9 @@ export default class gameScene extends Phaser.Scene {
     _createCubeStack() {
         this.cubeImages.forEach((img) => img.destroy());
         this.cubeImages = [];
+        this.numImages.forEach((img) => img.destroy());
+        this.numImages = [];
+        this.columnStates.clear();
 
         const cells = this._getCubeCells();
         // 先算相对坐标包围盒，再平移到 CUBE_STACK_ORIGIN
@@ -122,6 +159,7 @@ export default class gameScene extends Phaser.Scene {
         const centerY = (minY + maxY) / 2;
         const ox = CUBE_STACK_ORIGIN.x - centerX;
         const oy = CUBE_STACK_ORIGIN.y - centerY;
+        this._cubeOrigin = { ox, oy };
 
         // 画家算法：后排先画，同排左侧先画，底层先画
         locals.sort((a, b) => b.row - a.row || a.col - b.col || a.h - b.h);
@@ -132,7 +170,82 @@ export default class gameScene extends Phaser.Scene {
             img.setData('col', cell.col);
             img.setData('row', cell.row);
             img.setData('h', cell.h);
+            img.setInteractive(this.input.makePixelPerfect());
+            img.on('pointerdown', () => this._onCellClick(cell.col, cell.row));
             this.cubeImages.push(img);
+        });
+
+        this._createColumnNums();
+        CUBE_STACKS.forEach(({ col, row }) => {
+            this.columnStates.set(this._columnKey(col, row), COLUMN_STATE.IDLE);
+            this._applyColumnState(col, row);
+        });
+    }
+
+    /** 每列顶部数字徽章（按列高度用 num_1 ~ num_4），默认隐藏 */
+    _createColumnNums() {
+        this.numImages.forEach((img) => img.destroy());
+        this.numImages = [];
+
+        const { ox, oy } = this._cubeOrigin || { ox: 0, oy: 0 };
+        CUBE_STACKS.forEach(({ col, row, height }) => {
+            const topH = height - 1;
+            const p = this._cellToScreen(col, row, topH);
+            const tex = `num_${height}`;
+            if (!this.textures.exists(tex)) return;
+
+            const num = this.add.image(
+                p.x + ox + NUM_OFFSET.x,
+                p.y + oy + NUM_OFFSET.y,
+                tex,
+            );
+            num.setDepth(200 + row * 10 + col);
+            num.setData('col', col);
+            num.setData('row', row);
+            num.setData('height', height);
+            num.setVisible(false);
+            this.numImages.push(num);
+        });
+    }
+
+    _applyColumnState(col, row) {
+        const state = this._getColumnState(col, row);
+        const cellTex = state === COLUMN_STATE.HIGHLIGHT ? 'cell_s' : 'cell';
+        const showNum = state === COLUMN_STATE.NUMBER;
+
+        this.cubeImages.forEach((img) => {
+            if (img.getData('col') === col && img.getData('row') === row) {
+                img.setTexture(cellTex);
+            }
+        });
+
+        this.numImages.forEach((num) => {
+            if (num.getData('col') === col && num.getData('row') === row) {
+                num.setVisible(showNum);
+            }
+        });
+    }
+
+    /** 点击任意 cell：推进该列状态 1→2，之后 2↔3 */
+    _onCellClick(col, row) {
+        if (this.isBusy || this.hasFinished) return;
+
+        const key = this._columnKey(col, row);
+        const current = this._getColumnState(col, row);
+        const next = this._nextColumnState(current);
+        this.columnStates.set(key, next);
+
+        if (this.cache.audio.exists('btnclick')) {
+            this.sound.play('btnclick');
+        }
+
+        this._applyColumnState(col, row);
+    }
+
+    _resetCellSelection() {
+        CUBE_STACKS.forEach(({ col, row }) => {
+            this.columnStates.set(this._columnKey(col, row), COLUMN_STATE.IDLE);
+            this._applyColumnState(col, row);
         });
     }
 
@@ -174,6 +287,7 @@ export default class gameScene extends Phaser.Scene {
         this.hasFinished = false;
         this.errorCnt = 0;
         this.quetionImage?.setVisible(false);
+        this._resetCellSelection();
         this.playLevelTitle();
     }
 
