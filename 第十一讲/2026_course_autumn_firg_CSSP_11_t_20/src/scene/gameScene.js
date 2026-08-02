@@ -41,10 +41,6 @@ function getCardSoundKey(config, cardId) {
 export default class gameScene extends Phaser.Scene {
     constructor() {
         super('gameScene');
-        ReportHelper.gameReportParams.difficulty = 0;
-        ReportHelper.report('game_start', {
-            difficulty: 0,
-        });
     }
 
     create() {

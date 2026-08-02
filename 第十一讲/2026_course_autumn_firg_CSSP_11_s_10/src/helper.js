@@ -16,8 +16,8 @@ const ReportHelper = (function () {
     const gameReportParams = {
         difficulty: 1,
         question_id: 'calculateShortTerm_kin2026_03_s_01',
-        questionCount: 3,
-        wrongTimes: [0, 0, 0],
+        questionCount: 1,
+        wrongTimes: [0],
         score: 0,
         maxScore: 3,
         is_correct: false,

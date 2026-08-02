@@ -61,8 +61,6 @@ export default class loadingScene extends Phaser.Scene {
     }
 
     loadStartAssets() {
-        this.load.image('startScneBg', 'assets/png/common/s_fm_bg.png');
-
         this.load.spineBinary('end_data', 'assets/spine/jieshu.skel');
         this.load.spineAtlas('end_atlas', 'assets/spine/jieshu.atlas');
 
