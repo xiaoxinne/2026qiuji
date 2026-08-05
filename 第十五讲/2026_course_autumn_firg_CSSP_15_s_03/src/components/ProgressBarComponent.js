@@ -1,7 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig.js';
 
 /**
- * 进度条：以空格子数量表示目标，填充后表示已收集的箱子数
+ * 进度条：progress_n 未完成，progress_s 表示已切水果数
  */
 export default class ProgressBarComponent {
     /**

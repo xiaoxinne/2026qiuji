@@ -1,12 +1,17 @@
 import { GAME_CONFIG } from '../gameConfig.js';
 
+function pickFruitTexture() {
+    const list = GAME_CONFIG.fruitTextures;
+    return list[Math.floor(Math.random() * list.length)];
+}
+
 /**
- * 掉落物：箱子组合（1/2/3）或炸弹
+ * 掉落物：水果组合（1/2/3）或炸弹（zhadan spine）
  */
 export default class FallingItemComponent {
     /**
      * @param {Phaser.Scene} scene
-     * @param {{ x: number, y: number, type: 'box'|'bomb', count: number, depth?: number }} options
+     * @param {{ x: number, y: number, type: 'fruit'|'bomb', count: number, depth?: number }} options
      */
     constructor(scene, options) {
         this.scene = scene;
@@ -14,36 +19,41 @@ export default class FallingItemComponent {
         this.count = options.count || 1;
         this.isAlive = true;
         this.isHit = false;
+        /** @type {any|null} */
+        this.bombSpine = null;
 
-        const size = GAME_CONFIG.boxDisplaySize;
-        const gap = GAME_CONFIG.boxGap;
+        const size = GAME_CONFIG.fruitDisplaySize;
+        const gap = GAME_CONFIG.fruitGap;
         this.container = scene.add.container(options.x, options.y);
         this.container.setDepth(options.depth != null ? options.depth : 20);
 
         this.parts = [];
         if (this.type === 'bomb') {
-            const bomb = scene.add.image(0, 0, GAME_CONFIG.bombTexture);
-            bomb.setDisplaySize(size, size);
+            const cfg = GAME_CONFIG.zhadan || {};
+            const scale = cfg.scale != null ? cfg.scale : 0.7;
+            const bomb = scene.add.spine(0, 0, 'zhadan_data', 'zhadan_atlas');
+            bomb.setScale(scale);
+            bomb.animationState.setAnimation(0, 'idle', true);
             this.container.add(bomb);
             this.parts.push(bomb);
+            this.bombSpine = bomb;
+            // 命中盒按缩放后的大致尺寸
+            const hit = Math.round(140 * scale);
+            this.hitWidth = hit;
+            this.hitHeight = hit;
         } else {
             const totalW = this.count * size + (this.count - 1) * gap;
             let x = -totalW / 2 + size / 2;
             for (let i = 0; i < this.count; i += 1) {
-                const box = scene.add.image(x, 0, GAME_CONFIG.boxTexture);
-                box.setDisplaySize(size, size);
-                this.container.add(box);
-                this.parts.push(box);
+                const fruit = scene.add.image(x, 0, pickFruitTexture());
+                fruit.setDisplaySize(size, size);
+                this.container.add(fruit);
+                this.parts.push(fruit);
                 x += size + gap;
             }
+            this.hitWidth = this.count * size + (this.count - 1) * gap;
+            this.hitHeight = size;
         }
-
-        const boundsW =
-            this.type === 'bomb'
-                ? size
-                : this.count * size + (this.count - 1) * gap;
-        this.hitWidth = boundsW;
-        this.hitHeight = size;
     }
 
     get x() {
@@ -85,7 +95,6 @@ export default class FallingItemComponent {
     playEliminate() {
         this.isHit = true;
         this.isAlive = false;
-        // 关闭交互态后仍保留 container 做 tween
         return new Promise((resolve) => {
             this.scene.tweens.add({
                 targets: this.container,
@@ -103,33 +112,41 @@ export default class FallingItemComponent {
     }
 
     /**
-     * 炸弹错误闪烁后销毁
+     * 炸弹：播 baozha 爆炸后销毁
      * @returns {Promise<void>}
      */
     playBombError() {
         this.isHit = true;
         this.isAlive = false;
         return new Promise((resolve) => {
-            let flashes = 0;
-            const max = GAME_CONFIG.bombFlashTimes;
-            const interval = GAME_CONFIG.bombFlashInterval;
+            const spine = this.bombSpine;
+            if (!spine?.animationState) {
+                this.destroy();
+                resolve();
+                return;
+            }
 
-            const tick = () => {
-                flashes += 1;
-                this.container.setAlpha(flashes % 2 === 1 ? 0.25 : 1);
-                if (flashes >= max * 2) {
+            const data = spine.skeleton?.data || spine.animationState?.data?.skeletonData;
+            const names = (data?.animations || []).map((a) => a.name);
+            const animName =
+                names.find((n) => n === 'baozha') ||
+                names.find((n) => /baozha|boom|explode/i.test(n)) ||
+                names.find((n) => n !== 'idle') ||
+                names[0];
+
+            spine.animationState.setAnimation(0, animName, false);
+            spine.animationState.addListener({
+                complete: () => {
                     this.destroy();
                     resolve();
-                    return;
-                }
-                this.scene.time.delayedCall(interval, tick);
-            };
-            tick();
+                },
+            });
         });
     }
 
     destroy() {
         this.isAlive = false;
+        this.bombSpine = null;
         if (this.container?.active) {
             this.container.destroy(true);
         }

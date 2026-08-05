@@ -73,23 +73,36 @@ export default class loadingScene extends Phaser.Scene {
         this.load.spineBinary('button_data', 'assets/spine/button.skel');
         this.load.spineAtlas('button_atlas', 'assets/spine/button.atlas');
 
-        this.load.spineBinary('laba_data', 'assets/spine/laba.skel');
-        this.load.spineAtlas('laba_atlas', 'assets/spine/laba.atlas');
-
         this.load.audio('jizhang', 'assets/audio/jizhang.mp3');
         this.load.audio('givemefive', 'assets/audio/givemefive.mp3');
     }
 
     loadGameAssets() {
         this.load.image('game_bg', 'assets/png/gameScene/bg.png');
-        this.load.image('title1', 'assets/png/gameScene/title1.png');
         this.load.image('jiaobiao', 'assets/png/common/jiaobiao.png');
+
+        this.load.image('progress_n', 'assets/png/gameScene/progress_n.png');
+        this.load.image('progress_s', 'assets/png/gameScene/progress_s.png');
+
+        this.load.image('fruit_apple', 'assets/png/gameScene/apple.png');
+        this.load.image('fruit_banana', 'assets/png/gameScene/banana.png');
+        this.load.image('fruit_lemon', 'assets/png/gameScene/lemon.png');
+        this.load.image('fruit_mangosteen', 'assets/png/gameScene/mangosteen.png');
+        this.load.image('fruit_orange', 'assets/png/gameScene/orange.png');
+        this.load.image('fruit_peach', 'assets/png/gameScene/peach.png');
+        this.load.image('fruit_strawberry', 'assets/png/gameScene/strawberry.png');
+        this.load.image('fruit_watermelon', 'assets/png/gameScene/watermelon.png');
 
         this.load.spineBinary('effect_jinengzidan_data', 'assets/spine/effect_jinengzidan.skel');
         this.load.spineAtlas('effect_jinengzidan_atlas', 'assets/spine/effect_jinengzidan.atlas');
 
+        this.load.spineBinary('daoguang_data', 'assets/spine/daoguang.skel');
+        this.load.spineAtlas('daoguang_atlas', 'assets/spine/daoguang.atlas');
+
+        this.load.spineBinary('zhadan_data', 'assets/spine/zhadan.skel');
+        this.load.spineAtlas('zhadan_atlas', 'assets/spine/zhadan.atlas');
+
         this.load.audio('btnclick', 'assets/audio/btnclick.mp3');
-        this.load.audio('title1', 'assets/audio/title1.mp3');
         this.load.audio('correct', 'assets/audio/correct.mp3');
         this.load.audio('error1', 'assets/audio/error1.mp3');
         this.load.audio('put', 'assets/audio/put.mp3');

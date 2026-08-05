@@ -1,7 +1,7 @@
 import { GAME_CONFIG } from '../gameConfig.js';
 
 /**
- * 手指滑动切割：刀光只跟手走、停住即清；判定贴合物品外形
+ * 手指滑动切割：命中时播一次 daoguang；判定贴合物品外形
  */
 export default class SlashCutComponent {
     /**
@@ -21,6 +21,8 @@ export default class SlashCutComponent {
         this.segments = [];
         this._idleClearEvent = null;
         this._fadeEvent = null;
+        /** @type {any|null} 同时只保留一个刀光 */
+        this._daoGuangFx = null;
 
         this.graphics = scene.add.graphics();
         this.graphics.setDepth(500);
@@ -103,7 +105,6 @@ export default class SlashCutComponent {
             GAME_CONFIG.slashIdleClearMs,
             () => {
                 this._idleClearEvent = null;
-                // 仍按住但已停住：清掉刀光，避免像一条等箱子撞上来的线
                 if (this.isSlashing) {
                     this.segments = [];
                     this.graphics.clear();
@@ -151,16 +152,62 @@ export default class SlashCutComponent {
         }
     }
 
+    /** 清掉上一个刀光，保证场上只有一个 */
+    _clearDaoGuang() {
+        if (this._daoGuangFx?.active) {
+            this._daoGuangFx.destroy();
+        }
+        this._daoGuangFx = null;
+    }
+
+    /**
+     * 命中时播一次刀光（大：da，若无则 xiao）
+     * @param {number} x
+     * @param {number} y
+     * @param {number} angleRad
+     */
+    _playDaoGuang(x, y, angleRad) {
+        if (!this.scene.cache.binary.exists('daoguang_data')) return;
+
+        this._clearDaoGuang();
+
+        const cfg = GAME_CONFIG.daoGuang || {};
+        const fx = this.scene.add.spine(x, y, 'daoguang_data', 'daoguang_atlas');
+        fx.setDepth(cfg.depth != null ? cfg.depth : 520);
+        fx.setScale(cfg.scale != null ? cfg.scale : 0.45);
+        fx.setRotation(angleRad);
+        this._daoGuangFx = fx;
+
+        const data = fx.skeleton?.data || fx.animationState?.data?.skeletonData;
+        const anims = data?.animations || [];
+        const names = anims.map((a) => a.name);
+        const animName =
+            names.find((n) => n === 'da') ||
+            names.find((n) => n === 'xiao') ||
+            names[0] ||
+            'da';
+
+        fx.animationState.setAnimation(0, animName, false);
+        fx.animationState.addListener({
+            complete: () => {
+                if (this._daoGuangFx === fx) this._daoGuangFx = null;
+                if (fx.active) fx.destroy();
+            },
+        });
+    }
+
     _testHits(x1, y1, x2, y2) {
         const segLen = Phaser.Math.Distance.Between(x1, y1, x2, y2);
         if (segLen < 2) return;
 
+        const angle = Math.atan2(y2 - y1, x2 - x1);
         const items = this.getItems();
         for (const item of items) {
             if (!item?.isAlive || item.isHit) continue;
             if (item.hitTestSegment(x1, y1, x2, y2)) {
                 const midX = (x1 + x2) / 2;
                 const midY = (y1 + y2) / 2;
+                this._playDaoGuang(midX, midY, angle);
                 this.onSlashHit(item, midX, midY);
             }
         }
@@ -169,6 +216,7 @@ export default class SlashCutComponent {
     destroy() {
         this._cancelIdleClear();
         this._cancelFade();
+        this._clearDaoGuang();
         this.scene.input.off('pointerdown', this._onDown, this);
         this.scene.input.off('pointermove', this._onMove, this);
         this.scene.input.off('pointerup', this._onUp, this);

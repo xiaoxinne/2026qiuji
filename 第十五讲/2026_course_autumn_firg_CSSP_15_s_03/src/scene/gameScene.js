@@ -3,7 +3,6 @@ import FallingItemComponent from '../components/FallingItemComponent.js';
 import ProgressBarComponent from '../components/ProgressBarComponent.js';
 import SlashCutComponent from '../components/SlashCutComponent.js';
 import GameEndComponent from '../components/GameEndComponent.js';
-import TrumpetButtonComponent from '../components/TrumpetButtonComponent.js';
 
 function pickSpawnType() {
     const list = GAME_CONFIG.spawnWeights;
@@ -33,20 +32,11 @@ export default class gameScene extends Phaser.Scene {
     create() {
         this._onVisibilityChange = () => {
             this.sound.stopAll();
-            this.trumpet?.showIdle?.();
         };
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
         this.add.image(960, 540, 'game_bg');
         this.add.image(101, 67, 'jiaobiao');
-        this.add.image(960, 92, 'title1');
-
-        this.trumpet = TrumpetButtonComponent.create(this, {
-            x: 155,
-            y: 910,
-            soundKey: 'title1',
-            autoPlay: true,
-        });
 
         this.questionIndex = 0;
         this.isGameOver = false;
@@ -56,7 +46,6 @@ export default class gameScene extends Phaser.Scene {
         this.fillQueue = Promise.resolve();
         this.errorCnt = 0;
         this.gameStartTime = this.time.now;
-        this._ensurePlaceholderTextures();
 
         const firstTarget = GAME_CONFIG.questions[0].target;
         this.progressBar = new ProgressBarComponent(this, { target: firstTarget });
@@ -73,59 +62,6 @@ export default class gameScene extends Phaser.Scene {
         });
 
         this._spawnItem();
-    }
-
-    /** 占位贴图：正式素材到位后可删，改为 loadingScene 加载 */
-    _ensurePlaceholderTextures() {
-        if (this.textures.exists(GAME_CONFIG.boxTexture)) return;
-
-        const size = 128;
-        const g = this.make.graphics({ x: 0, y: 0, add: false });
-
-        // 箱子
-        g.clear();
-        g.fillStyle(0xc47a3a, 1);
-        g.fillRoundedRect(8, 8, size - 16, size - 16, 14);
-        g.lineStyle(6, 0x8a4a1a, 1);
-        g.strokeRoundedRect(8, 8, size - 16, size - 16, 14);
-        g.fillStyle(0xe8b06a, 1);
-        g.fillRoundedRect(28, 28, size - 56, 28, 8);
-        g.generateTexture(GAME_CONFIG.boxTexture, size, size);
-
-        // 炸弹
-        g.clear();
-        g.fillStyle(0x2a2a2a, 1);
-        g.fillCircle(size / 2, size / 2 + 8, 46);
-        g.lineStyle(4, 0xff4444, 1);
-        g.strokeCircle(size / 2, size / 2 + 8, 46);
-        g.lineStyle(5, 0xffaa33, 1);
-        g.beginPath();
-        g.moveTo(size / 2 + 20, size / 2 - 30);
-        g.lineTo(size / 2 + 36, size / 2 - 48);
-        g.strokePath();
-        g.fillStyle(0xffdd55, 1);
-        g.fillCircle(size / 2 + 38, size / 2 - 50, 8);
-        g.generateTexture(GAME_CONFIG.bombTexture, size, size);
-
-        // 进度空格
-        g.clear();
-        g.fillStyle(0xffffff, 0.35);
-        g.fillRoundedRect(4, 4, 72, 72, 12);
-        g.lineStyle(4, 0xffffff, 0.8);
-        g.strokeRoundedRect(4, 4, 72, 72, 12);
-        g.generateTexture(GAME_CONFIG.progress.emptyTexture, 80, 80);
-
-        // 进度实心
-        g.clear();
-        g.fillStyle(0xffc14a, 1);
-        g.fillRoundedRect(4, 4, 72, 72, 12);
-        g.lineStyle(4, 0xffffff, 1);
-        g.strokeRoundedRect(4, 4, 72, 72, 12);
-        g.fillStyle(0xc47a3a, 1);
-        g.fillRoundedRect(22, 22, 36, 36, 8);
-        g.generateTexture(GAME_CONFIG.progress.filledTexture, 80, 80);
-
-        g.destroy();
     }
 
     update(_time, delta) {
@@ -178,26 +114,24 @@ export default class gameScene extends Phaser.Scene {
             this.sound.play('error1');
             this.errorCnt += 1;
             ReportHelper.recordWrongTime(this.questionIndex);
-            this._playSpineEffect(item.x, item.y);
             await item.playBombError();
             this._removeItem(item);
             return;
         }
 
-        // 箱子：先播消除
+        // 水果：先播消除；超切（组数 > 剩余格）只消失不填格
         this.sound.play('correct');
         const fromX = item.x;
         const fromY = item.y;
-        const boxCount = item.count;
+        const fruitCount = item.count;
         const remaining = this._effectiveRemaining();
 
         /**
-         * 进度将满且切割数 > 剩余格数时（如目标5且已填4，切2/3箱）：
-         * 只播消除，不追尾、不填格
+         * 如目标 5 已填 4，切 2/3 果组：只播消除，不追尾、不填格
          */
-        const canFill = boxCount <= remaining && remaining > 0;
+        const canFill = fruitCount <= remaining && remaining > 0;
         if (canFill) {
-            this.pendingFills += boxCount;
+            this.pendingFills += fruitCount;
         }
 
         await item.playEliminate();
@@ -207,7 +141,7 @@ export default class gameScene extends Phaser.Scene {
             return;
         }
 
-        await this._enqueueFills(fromX, fromY, boxCount);
+        await this._enqueueFills(fromX, fromY, fruitCount);
 
         if (this.progressBar.isFull && this.pendingFills === 0) {
             this._onQuestionComplete();
@@ -215,16 +149,16 @@ export default class gameScene extends Phaser.Scene {
     }
 
     /** 串行填充，避免多刀同时追尾导致格子错位 */
-    _enqueueFills(fromX, fromY, boxCount) {
+    _enqueueFills(fromX, fromY, fruitCount) {
         const run = async () => {
-            for (let i = 0; i < boxCount; i += 1) {
+            for (let i = 0; i < fruitCount; i += 1) {
                 if (this.progressBar.isFull) {
-                    this.pendingFills = Math.max(0, this.pendingFills - (boxCount - i));
+                    this.pendingFills = Math.max(0, this.pendingFills - (fruitCount - i));
                     break;
                 }
                 const targetPos = this.progressBar.getNextFillPosition();
                 if (!targetPos) {
-                    this.pendingFills = Math.max(0, this.pendingFills - (boxCount - i));
+                    this.pendingFills = Math.max(0, this.pendingFills - (fruitCount - i));
                     break;
                 }
                 await this._playTrailToProgress(fromX, fromY, targetPos.x, targetPos.y);
@@ -337,7 +271,6 @@ export default class gameScene extends Phaser.Scene {
         this.slash.setEnabled(false);
         this.spawnTimer?.remove(false);
         this._clearFallItems();
-        this.trumpet?.stop?.();
 
         GameEndComponent.show(this, {
             starCount: this._getStarCountByTime(),
