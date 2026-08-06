@@ -162,20 +162,27 @@ export default class SlashCutComponent {
 
     /**
      * 命中时播一次刀光（大：da，若无则 xiao）
+     * 方向跟滑动：左→右 / 右→左 用 scaleX 翻转，倾角跟滑动
      * @param {number} x
      * @param {number} y
-     * @param {number} angleRad
+     * @param {number} dx 本段滑动水平分量
+     * @param {number} dy 本段滑动竖直分量
      */
-    _playDaoGuang(x, y, angleRad) {
+    _playDaoGuang(x, y, dx, dy) {
         if (!this.scene.cache.binary.exists('daoguang_data')) return;
 
         this._clearDaoGuang();
 
         const cfg = GAME_CONFIG.daoGuang || {};
+        const scale = cfg.scale != null ? cfg.scale : 0.45;
+        const timeScale = cfg.timeScale != null ? cfg.timeScale : 1.1;
+        const faceRight = dx >= 0;
+
         const fx = this.scene.add.spine(x, y, 'daoguang_data', 'daoguang_atlas');
         fx.setDepth(cfg.depth != null ? cfg.depth : 520);
-        fx.setScale(cfg.scale != null ? cfg.scale : 0.45);
-        fx.setRotation(angleRad);
+        // 资源默认朝向与屏幕左右相反：左→右用负 scaleX，右→左用正 scaleX
+        fx.setScale(faceRight ? -scale : scale, scale);
+        fx.setRotation(Math.atan2(dy, Math.abs(dx) || 1));
         this._daoGuangFx = fx;
 
         const data = fx.skeleton?.data || fx.animationState?.data?.skeletonData;
@@ -187,6 +194,7 @@ export default class SlashCutComponent {
             names[0] ||
             'da';
 
+        fx.animationState.timeScale = timeScale;
         fx.animationState.setAnimation(0, animName, false);
         fx.animationState.addListener({
             complete: () => {
@@ -200,14 +208,15 @@ export default class SlashCutComponent {
         const segLen = Phaser.Math.Distance.Between(x1, y1, x2, y2);
         if (segLen < 2) return;
 
-        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const dx = x2 - x1;
+        const dy = y2 - y1;
         const items = this.getItems();
         for (const item of items) {
             if (!item?.isAlive || item.isHit) continue;
             if (item.hitTestSegment(x1, y1, x2, y2)) {
                 const midX = (x1 + x2) / 2;
                 const midY = (y1 + y2) / 2;
-                this._playDaoGuang(midX, midY, angle);
+                this._playDaoGuang(midX, midY, dx, dy);
                 this.onSlashHit(item, midX, midY);
             }
         }

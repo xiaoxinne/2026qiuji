@@ -79,6 +79,7 @@ export default class loadingScene extends Phaser.Scene {
 
     loadGameAssets() {
         this.load.image('game_bg', 'assets/png/gameScene/bg.png');
+        this.load.image('game_bg2', 'assets/png/gameScene/bg2.png');
         this.load.image('jiaobiao', 'assets/png/common/jiaobiao.png');
 
         this.load.image('progress_n', 'assets/png/gameScene/progress_n.png');

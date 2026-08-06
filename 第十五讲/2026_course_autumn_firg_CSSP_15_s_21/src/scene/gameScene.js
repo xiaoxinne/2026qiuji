@@ -83,7 +83,7 @@ function buildNumButtonPositions(scene) {
 export default class gameScene extends Phaser.Scene {
     constructor() {
         super('gameScene');
-        ReportHelper.gameReportParams.difficulty = 1;
+        ReportHelper.gameReportParams.difficulty = 3;
         ReportHelper.gameReportParams.question_id = '2026_course_autumn_firg_CSSP_15_s_21';
         ReportHelper.gameReportParams.questionCount = LEVELS.length;
         ReportHelper.resetWrongTimes();

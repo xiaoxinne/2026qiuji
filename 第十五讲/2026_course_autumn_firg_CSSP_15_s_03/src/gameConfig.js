@@ -60,6 +60,8 @@ export const GAME_CONFIG = {
     daoGuang: {
         scale: 0.45,
         depth: 520,
+        /** 播放加速（1 = 原速） */
+        timeScale: 1.2,
     },
 
     /** 炸弹 spine：下落 idle，切中 baozha */

@@ -14,7 +14,7 @@ const ReportHelper = (function () {
     let isGameEnd = false;
 
     const gameReportParams = {
-        difficulty: 1,
+        difficulty: 0,
         question_id: '2026_course_autumn_firg_CSSP_15_s_03',
         questionCount: 2,
         wrongTimes: [0, 0],

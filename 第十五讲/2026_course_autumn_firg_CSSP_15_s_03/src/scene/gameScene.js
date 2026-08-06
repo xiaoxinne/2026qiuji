@@ -36,7 +36,9 @@ export default class gameScene extends Phaser.Scene {
         document.addEventListener('visibilitychange', this._onVisibilityChange);
 
         this.add.image(960, 540, 'game_bg');
-        this.add.image(101, 67, 'jiaobiao');
+        // 高于水果/炸弹(20)，低于进度条(50)；顶部对齐 y=0
+        this.add.image(960, 0, 'game_bg2').setOrigin(0.5, 0).setDepth(40);
+        this.add.image(101, 67, 'jiaobiao').setDepth(2000);
 
         this.questionIndex = 0;
         this.isGameOver = false;
